@@ -1,10 +1,12 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME, insert, update, delete
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, validates
 
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
-# Base.metadata.create_all(engine)
+Session = sessionmaker(engine)
+session = Session()
+
 
 class League(Base):
     __tablename__ = "league_table"
@@ -13,6 +15,12 @@ class League(Base):
     name = Column("name", String)
     country = Column("country", String)
     teams = relationship("Team")
+
+    @validates('name', 'country')
+    def validate_name_and_country(self, _, address):
+        if not isinstance(address, str):
+            raise TypeError()
+        return address
 
     def __repr__(self):
         return f"League: {self.name}\t Country: {self.country}"
@@ -25,9 +33,13 @@ class Team(Base):
     name = Column("name", String)
     league = Column(Integer, ForeignKey("league_table.id"))
     team_stats = relationship("Team_stat")
-    left_team = relationship("Match")
-    right_team = relationship("Match")
     player = relationship("Player")
+
+    @validates('name')
+    def validate_name(self, _, address):
+        if not isinstance(address, str):
+            raise TypeError()
+        return address
 
     def __repr__(self):
         return f"Name: {self.name}\t Leagues: {self.league}"
@@ -56,7 +68,6 @@ class Player(Base):
     height = Column("height", Integer)
     position = Column("position", String)
     player_stats = relationship("Player_stat")
-
 
     def __repr__(self):
         return f"Name: {self.name}\nSurname: {self.surname}\nAge: {self.age}\nTeam: {self.team}\n"\
@@ -109,8 +120,10 @@ class Match(Base):
     __tablename__ = "match_table"
 
     id = Column("id", Integer, primary_key=True)
-    left_team = Column(Integer, ForeignKey("team_table.id"))
-    right_team = Column(Integer, ForeignKey("team_table.id"))
+    left_team_id = Column(Integer, ForeignKey("team_table.id"))
+    right_team_id = Column(Integer, ForeignKey("team_table.id"))
+    left_team = relationship("Team", foreign_keys=[left_team_id])
+    right_team = relationship("Team", foreign_keys=[right_team_id])
     season = Column(Integer, ForeignKey("season_table.id"))
     left_scored = Column("left_scored", Integer)
     right_scored = Column("right_scored", Integer)
@@ -121,4 +134,8 @@ class Match(Base):
         return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}"\
             f"\t{self.date}"
 
+session.query()
+session.commit()
+
 Base.metadata.create_all(engine)
+

@@ -172,8 +172,8 @@ class PlayerParser(UPLParser):
 
 
 
-example = TeamParser('https://football.ua/ukraine/table.html')
-print(example.parse_teams())
+teams = TeamParser('https://football.ua/ukraine/table.html')
+teams_dict= teams.parse_teams()
 example1 = GameParser('https://football.ua/ukraine/results/761/')
 print(example1.parse_games())
 example2 = PlayerParser('https://www.ua-football.com/ua/stats/player/65408-mihail-mudrikua')
