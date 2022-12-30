@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME, insert, update, delete
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
+from pars import teams_dict, players_dict, games_dict
 
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
@@ -11,7 +12,7 @@ session = Session()
 class League(Base):
     __tablename__ = "league_table"
 
-    id = Column("id", Integer, primary_key=True)
+    id = Column("id", Integer, primary_key=True, autoincrement=True)
     name = Column("name", String)
     country = Column("country", String)
     teams = relationship("Team")
@@ -31,9 +32,12 @@ class Team(Base):
 
     id = Column("id", Integer, primary_key=True)
     name = Column("name", String)
-    league = Column(Integer, ForeignKey("league_table.id"))
-    team_stats = relationship("Team_stat")
-    player = relationship("Player")
+    league_id = Column(Integer, ForeignKey("league_table.id"))
+    league = relationship("League", back_populates="teams")
+    team_stats = relationship("Team_stats")
+    players = relationship("Player")
+    # matches_as_right = relationship("Match", back_populates='team_right')
+    # matches_as_left = relationship("Match", back_populates='team_left')
 
     @validates('name')
     def validate_name(self, _, address):
@@ -50,8 +54,8 @@ class Season(Base):
     id = Column("id", Integer, primary_key=True)
     year = Column("year", Integer)
     match = relationship("Match")
-    team_stat = relationship("Team_stat")
-    player_stat = relationship("Player_stat")
+    team_stats = relationship("Team_stats")
+    player_stats = relationship("Player_stats")
 
     def __repr__(self):
         return f"Season: {self.year}"
@@ -63,22 +67,25 @@ class Player(Base):
     name = Column("name", String)
     surname = Column("surname", String)
     age = Column("age", Integer)
-    team = Column(Integer, ForeignKey("team_table.id"))
+    team_id = Column(Integer, ForeignKey("team_table.id"))
+    team = relationship("Team", back_populates="players")
     nationality = Column("nationality", String)
     height = Column("height", Integer)
     position = Column("position", String)
-    player_stats = relationship("Player_stat")
+    player_stats = relationship("Player_stats")
 
     def __repr__(self):
         return f"Name: {self.name}\nSurname: {self.surname}\nAge: {self.age}\nTeam: {self.team}\n"\
                 f"Nationality: {self.nationality}\nHeight: {self.height}\n Position: {self.position}"
 
-class Player_stat(Base):
+class Player_stats(Base):
     __tablename__ = "player_stats_table"
 
     id = Column("id", Integer, primary_key=True)
-    player = Column(Integer, ForeignKey("player_table.id"))
-    season = Column(Integer, ForeignKey("season_table.id"))
+    player_id = Column(Integer, ForeignKey("player_table.id"))
+    player = relationship("Player", back_populates="player_stats")
+    season_id = Column(Integer, ForeignKey("season_table.id"))
+    season = relationship("Season", back_populates="player_stats")
     minutes_played = Column("minutes_played", Integer)
     games_from_start = Column("games_from_start", Integer)
     subtitles = Column("subtitles", Integer)
@@ -96,14 +103,17 @@ class Player_stat(Base):
                 f"Positive actions: {self.positive_actions}\nYellow card: {self.yellow_cards}\n"\
                 f"Red card: {self.red_cards}"
 
-class Team_stat(Base):
+class Team_stats(Base):
     __tablename__ = "team_stats_table"
 
     id = Column("id", Integer, primary_key=True)
-    team = Column(Integer, ForeignKey("team_table.id"))
-    season = Column(Integer, ForeignKey("season_table.id"))
+    team_id = Column(Integer, ForeignKey("team_table.id"))
+    team = relationship("Team", back_populates="team_stats")
+    season_id = Column(Integer, ForeignKey("season_table.id"))
+    season = relationship("Season", back_populates="team_stats")
     num_of_games = Column("num_of_games", Integer)
     games_won = Column("games_won", Integer)
+    games_draw = Column("games_draw", Integer)
     games_lost = Column("games_lost", Integer)
     goals_scored = Column("goals_scored", Integer)
     goals_lost = Column("goals_lost", Integer)
@@ -134,8 +144,34 @@ class Match(Base):
         return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}"\
             f"\t{self.date}"
 
-session.query()
-session.commit()
-
 Base.metadata.create_all(engine)
+
+def insert_teams(teams_d, country_name):
+    league = session.query(League).filter(League.country == country_name).first()
+    if league:
+        for i in range(len(teams_d["teams"])):
+            session.add(Team(name=teams_d["teams"][i]["team_name"], league=league))
+    else:
+        raise ValueError("Enter correct country name")
+
+def insert_team_stats(teams_d, season_data):
+    season = session.query(Season).filter(Season.year == season_data).first()
+    if season:
+        for i in range(len(teams_d["teams"])):
+            team = session.query(Team).filter(Team.id == i+1).first()
+            session.add(Team_stats(team=team, season=season, num_of_games=teams_d["teams"][i]["games"],
+                                   games_won=teams_d["teams"][i]["win"],
+                                   games_draw=teams_d["teams"][i]["draw"],
+                                   games_lost=teams_d["teams"][i]["lose"],
+                                   goals_scored=teams_d["teams"][i]["goal"],
+                                   goals_lost=teams_d["teams"][i]["miss"],
+                                   goals_difference=teams_d["teams"][i]["diff"],
+                                   points=teams_d["teams"][i]["score"]))
+    else:
+        raise ValueError("Enter correct year")
+
+
+
+
+session.commit()
 

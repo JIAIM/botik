@@ -245,9 +245,9 @@ class UPLParseFactory(IParseFactory):
 teams_links = 'https://football.ua/ukraine/table.html'
 games_link = 'https://football.ua/ukraine/results/761/'
 upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
-print(upl.parse_teams())
-print(upl.parse_games())
-print(upl.parse_players())
+teams_dict = upl.parse_teams()
+games_dict = upl.parse_games()
+players_dict = upl.parse_players()
 
 
 
