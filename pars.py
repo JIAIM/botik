@@ -14,20 +14,20 @@ class IParser(ABC):
         pass
 
 
-class ITeamsParser(IParser, ABC):
+class ITeamsParser(IParser):
 
     @abstractmethod
     def parse_teams(self):
         pass
 
 
-class IGamesParser(IParser, ABC):
+class IGamesParser(IParser):
     @abstractmethod
     def parse_games(self):
         pass
 
 
-class IPlayersParser(IParser, ABC):
+class IPlayersParser(IParser):
 
     @abstractmethod
     def parse_players(self):
@@ -48,6 +48,7 @@ class IParseFactory(ABC):
     def parse_players(self):
         pass
 
+
 class UPL_Parser(IParser):
 
     def __init__(self, link):
@@ -55,9 +56,9 @@ class UPL_Parser(IParser):
 
     def page_to_html(self, link):
         try:
-            temp_page = requests.get(link)
-            return BeautifulSoup(temp_page.content, 'html.parser')
-        except Exception as e: e
+            return BeautifulSoup(requests.get(link).content, 'html.parser')
+        except Exception as e:
+            print(e)
 
 
 class UPL_TeamParser(ITeamsParser, UPL_Parser):
@@ -71,21 +72,12 @@ class UPL_TeamParser(ITeamsParser, UPL_Parser):
         }
         # team_list = self.page.find('table', class_='main-tournament-table')
         # items = team_list.find_all('tr')
+        keys = ['num', 'games', 'win', 'draw', 'lose', 'goal', 'miss', 'diff', 'score']
         for item in self.page.find('table', class_='main-tournament-table').find_all('tr'):
             try:
-                result['teams'].append(
-                    {
-                    'team_name': item.find('td', class_='team').find('a').text,
-                    'num': item.find('td', class_='num').text,
-                    'games': item.find('td', class_='games').text,
-                    'win': item.find('td', class_='win').text,
-                    'draw': item.find('td', class_='draw').text,
-                    'lose': item.find('td', class_='lose').text,
-                    'goal': item.find('td', class_='goal').text,
-                    'miss': item.find('td', class_='miss').text,
-                    'diff': item.find('td', class_='diff').text,
-                    'score': item.find('td', class_='score').text
-                    })
+                temp_dict = {i: item.find('td', class_=i).text for i in keys}
+                temp_dict['team_name'] = item.find('td', class_='team').find('a').text,
+                result['teams'].append(temp_dict)
             except AttributeError:
                 pass
         return result
@@ -109,12 +101,12 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
 
                 result['games'].append(
                     {
-                    'time': game.find('td', class_='time').find('a').text,
-                    'first_team': game.find('td', class_='left-team').find('a').text,
-                    'second_team': game.find('td', class_='right-team').find('a').text,
-                    'date': game.find_previous('p', class_='match-date').text,
-                    'num_of_tour': game.find_previous('div', class_='match-name').find('h4').text,
-                    'score': score
+                        'time': game.find('td', class_='time').find('a').text,
+                        'first_team': game.find('td', class_='left-team').find('a').text,
+                        'second_team': game.find('td', class_='right-team').find('a').text,
+                        'date': game.find_previous('p', class_='match-date').text,
+                        'num_of_tour': game.find_previous('div', class_='match-name').find('h4').text,
+                        'score': score
                     })
 
             except AttributeError:
@@ -129,18 +121,18 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
         self.squad_file = squad_file
         self.players_links_file = players_links_file
 
-    def parse_player_link(self):#
+    def parse_player_link(self):  #
         players_links = []
         with open(self.squad_file, 'r') as f:
             for line in f:
-                #players_links = []
+                # players_links = []
                 page = self.page_to_html(line)
                 for one_link in page.find_all('a', class_='mat-list-team fw-500'):
                     if ('https://www.ua-football.com' + one_link['href']) not in players_links:
                         players_links.append('https://www.ua-football.com' + one_link['href'])
                 print(players_links)
         with open(self.players_links_file, 'w') as file:
-            #file.write('\n')
+            # file.write('\n')
             file.write('\n'.join(players_links))
 
     def parse_single_player(self, page):
@@ -182,6 +174,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
             for line in f:
                 result['players'].append(self.parse_single_player(self.page_to_html(line)))
         return result
+
 
 class UPLParseFactory(IParseFactory):
 
@@ -229,7 +222,6 @@ class UPLParseFactory(IParseFactory):
             raise FileExistsError
         self.__players_links_file = players_links_file
 
-
     def parse_games(self):
         return UPL_GameParser(self.games_link).parse_games()
 
@@ -240,17 +232,9 @@ class UPLParseFactory(IParseFactory):
         return UPL_PlayerParser(self.squad_file, self.players_links_file).parse_players()
 
 
-
-
 teams_links = 'https://football.ua/ukraine/table.html'
 games_link = 'https://football.ua/ukraine/results/761/'
 upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
 teams_dict = upl.parse_teams()
 games_dict = upl.parse_games()
 players_dict = upl.parse_players()
-
-
-
-
-
-

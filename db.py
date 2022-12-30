@@ -154,6 +154,7 @@ def insert_teams(teams_d, country_name):
     else:
         raise ValueError("Enter correct country name")
 
+
 def insert_team_stats(teams_d, season_data):
     season = session.query(Season).filter(Season.year == season_data).first()
     if season:
