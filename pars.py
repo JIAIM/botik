@@ -147,7 +147,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
                 'full_name': page.find('h1', class_='liga-header__title').text.strip(),
             }
             for i, value in enumerate(
-                    page.find('div', {'class': 'team-about-header'}).find('div').find_all('alAb-dop-item'), 1
+                    page.find('div', {'class': 'team-about-header'}).find_all('div', class_='alAb-dop-n1'), 1
             ):
                 result[keys[i]] = value.text.strip()
             table = page.find('table')
@@ -160,6 +160,8 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
                 raise ValueError("No value for championhip %s", championship_name)
             for i, value in enumerate(champ_row.find_all('td')[1:], 6):
                 result[keys[i]] = value.text.strip()
+            result['goals'] = result['goals'][:result['goals'].index(' ')]
+            result['age'] = result['age'][:result['age'].index(' ')]
 
         except Exception as e:
             raise e
