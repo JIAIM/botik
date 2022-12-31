@@ -149,7 +149,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
             for i, value in enumerate(
                     page.find('div', {'class': 'team-about-header'}).find('div').find_all('alAb-dop-item'), 1
             ):
-                result[keys[i]] = value.strip()
+                result[keys[i]] = value.text.strip()
             table = page.find('table')
             champ_row = None
             for row in table.find('tbody').find_all('tr'):
