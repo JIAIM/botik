@@ -145,6 +145,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
         try:
             result = {
                 'full_name': page.find('h1', class_='liga-header__title').text.strip(),
+                'height': None
             }
             for i, value in enumerate(
                     page.find('div', {'class': 'team-about-header'}).find_all('div', class_='alAb-dop-n1'), 1
