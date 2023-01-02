@@ -162,6 +162,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
                 result[keys[i]] = value.text.strip()
             result['goals'] = result['goals'][:result['goals'].index(' ')]
             result['age'] = result['age'][:result['age'].index(' ')]
+            if result['age'] == '53': result['age'] = None
 
         except Exception as e:
             raise e
