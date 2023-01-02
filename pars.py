@@ -147,9 +147,9 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
                 'full_name': page.find('h1', class_='liga-header__title').text.strip(),
             }
             for i, value in enumerate(
-                    page.find('div', {'class': 'team-about-header'}).find('div').find_all('alAb-dop-item'), 1
+                    page.find('div', {'class': 'team-about-header'}).find_all('div', class_='alAb-dop-n1'), 1
             ):
-                result[keys[i]] = value.strip()
+                result[keys[i]] = value.text.strip()
             table = page.find('table')
             champ_row = None
             for row in table.find('tbody').find_all('tr'):
@@ -160,6 +160,9 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
                 raise ValueError("No value for championhip %s", championship_name)
             for i, value in enumerate(champ_row.find_all('td')[1:], 6):
                 result[keys[i]] = value.text.strip()
+            result['goals'] = result['goals'][:result['goals'].index(' ')]
+            result['age'] = result['age'][:result['age'].index(' ')]
+            if result['age'] == '53': result['age'] = None
 
         except Exception as e:
             raise e
@@ -168,11 +171,11 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
         return result
 
     def parse_players(self):
-        result = {'players': []}
+        result = []
         self.parse_player_link()
         with open(self.players_links_file, 'r') as f:
             for line in f:
-                result['players'].append(self.parse_single_player(self.page_to_html(line)))
+                result.append(self.parse_single_player(self.page_to_html(line)))
         return result
 
 
