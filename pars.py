@@ -145,6 +145,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
         try:
             result = {
                 'full_name': page.find('h1', class_='liga-header__title').text.strip(),
+                'height': None
             }
             for i, value in enumerate(
                     page.find('div', {'class': 'team-about-header'}).find_all('div', class_='alAb-dop-n1'), 1
@@ -165,7 +166,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
             if result['age'] == '53': result['age'] = None
 
         except Exception as e:
-            raise e
+            print(e)
         print(result)
 
         return result
@@ -240,4 +241,4 @@ games_link = 'https://football.ua/ukraine/results/761/'
 upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
 teams_dict = upl.parse_teams()
 games_dict = upl.parse_games()
-players_dict = upl.parse_players()
+players_list = upl.parse_players()
