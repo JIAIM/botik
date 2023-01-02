@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
-from pars import teams_dict, players_list, games_dict
+from pars import games_dict, players_list, teams_dict
 
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
@@ -37,8 +37,8 @@ class Team(Base):
     team_stats = relationship("Team_stats")
     players = relationship("Player")
 
-    # matches_as_right = relationship("Match", back_populates='team_right')
-    # matches_as_left = relationship("Match", back_populates='team_left')
+    matches_as_right = relationship("Match", back_populates='team_right')
+    matches_as_left = relationship("Match", back_populates='team_left')
 
     @validates('name')
     def validate_name(self, _, address):
@@ -68,8 +68,6 @@ class Player(Base):
 
     id = Column("id", Integer, primary_key=True)
     full_name = Column("full_name", String)
-    name = Column("name", String)
-    surname = Column("surname", String)
     age = Column("age", Integer)
     team_id = Column(Integer, ForeignKey("team_table.id"))
     team = relationship("Team", back_populates="players")
@@ -79,7 +77,7 @@ class Player(Base):
     player_stats = relationship("Player_stats")
 
     def __repr__(self):
-        return f"Name: {self.name}\nSurname: {self.surname}\nAge: {self.age}\nTeam: {self.team}\n" \
+        return f"Full name: {self.full_name}\nAge: {self.age}\nTeam: {self.team}\n" \
                f"Nationality: {self.nationality}\nHeight: {self.height}\n Position: {self.position}"
 
 
@@ -144,7 +142,8 @@ class Match(Base):
     season = Column(Integer, ForeignKey("season_table.id"))
     left_scored = Column("left_scored", Integer)
     right_scored = Column("right_scored", Integer)
-    date = Column("date", DATETIME)
+    time = Column("time", String)
+    date = Column("date", String)
     num_of_tour = Column("num_of_tour", Integer)
 
     def __repr__(self):
@@ -189,6 +188,8 @@ def insert_team_stats(teams_d, season_data):
 
 
 def insert_player(players_d):
+    teams_names_short = ["Дні", "Шах", "Дин", "Зор", "Оле", "Кол", "Вор", "1925", "Кри", "Вер", "Мет",
+                         "Рух", "Мин", "Інг", "Чор", "Льв"]
     teams_name = []
     name_to_find = None
     for index in range(16):
@@ -198,17 +199,12 @@ def insert_player(players_d):
     for i in range(len(players_d)):
         for k in range(16):
             name_to_find = players_d[i]["team_name"]
-            if name_to_find.find(teams_name[k]) != -1:
+            if name_to_find.find(teams_names_short[k]) != -1:
                 name_to_find = teams_name[k]
                 break
 
         team = session.query(Team).filter(Team.name == name_to_find).first()
-        fullname = (players_d[i]["full_name"]).split(" ")
-        player_name = fullname[0]
-        player_surname = fullname[1]
         player_data = Player(full_name=players_d[i]["full_name"],
-                             name=player_name,
-                             surname=player_surname,
                              age=players_d[i]["age"],
                              team=team,
                              nationality=players_d[i]["nationality"],
@@ -233,8 +229,33 @@ def insert_player_stats(players_d, season_data):
                                      positive_actions=players_d[i]["positive_actions"],
                                      yellow_cards=players_d[i]["yellow_cards"],
                                      red_cards=players_d[i]["red_cards"]))
+    else:
+        raise ValueError()
+def insert_matches(matches_dict, season_data):
+    season = check_season(season_data)
+    if season:
+        for i in range(len(matches_dict["games"])):
+            left_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["first_team"]).first()
+            right_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["second_team"]).first()
+            session.add(Match(left_team=left_team,
+                              right_team=right_team,
+                              season=season,
+                              left_scored=str(matches_dict["games"][i]["score"])[:1],
+                              right_scored=str(matches_dict["games"][i]["score"])[2:],
+                              time=matches_dict["games"][i]["time"],
+                              date=matches_dict["games"][i]["date"],
+                              num_of_tour=matches_dict["games"][i]["num_of_tour"]))
+    else:
+        raise ValueError()
 
+print(games_dict)
 
+session.add(League(name="Ukrainian Premier League", country="Ukraine"))
+session.add(Season(year=2022))
+insert_teams(teams_dict, "Ukraine")
+insert_team_stats(teams_dict, 2022)
 insert_player(players_list)
+insert_player_stats(players_list, 2022)
+insert_matches(games_dict, 2022)
 
 session.commit()

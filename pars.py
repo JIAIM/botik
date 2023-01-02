@@ -108,6 +108,7 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
                         'num_of_tour': game.find_previous('div', class_='match-name').find('h4').text,
                         'score': score
                     })
+                result['games'][-1]['num_of_tour'] = int(re.search(r'\d+', result['games'][-1]['num_of_tour']).group())
 
             except AttributeError:
                 pass
