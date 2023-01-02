@@ -165,7 +165,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
             if result['age'] == '53': result['age'] = None
 
         except Exception as e:
-            raise e
+            print(e)
         print(result)
 
         return result
