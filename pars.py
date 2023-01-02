@@ -170,11 +170,11 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
         return result
 
     def parse_players(self):
-        result = {'players': []}
+        result = []
         self.parse_player_link()
         with open(self.players_links_file, 'r') as f:
             for line in f:
-                result['players'].append(self.parse_single_player(self.page_to_html(line)))
+                result.append(self.parse_single_player(self.page_to_html(line)))
         return result
 
 
