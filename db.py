@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
-from pars import teams_dict, players_dict, games_dict
+from pars import teams_dict, players_list, games_dict
 
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
@@ -36,6 +36,7 @@ class Team(Base):
     league = relationship("League", back_populates="teams")
     team_stats = relationship("Team_stats")
     players = relationship("Player")
+
     # matches_as_right = relationship("Match", back_populates='team_right')
     # matches_as_left = relationship("Match", back_populates='team_left')
 
@@ -47,6 +48,7 @@ class Team(Base):
 
     def __repr__(self):
         return f"Name: {self.name}\t Leagues: {self.league}"
+
 
 class Season(Base):
     __tablename__ = "season_table"
@@ -60,10 +62,12 @@ class Season(Base):
     def __repr__(self):
         return f"Season: {self.year}"
 
+
 class Player(Base):
     __tablename__ = "player_table"
 
     id = Column("id", Integer, primary_key=True)
+    full_name = Column("full_name", String)
     name = Column("name", String)
     surname = Column("surname", String)
     age = Column("age", Integer)
@@ -75,8 +79,9 @@ class Player(Base):
     player_stats = relationship("Player_stats")
 
     def __repr__(self):
-        return f"Name: {self.name}\nSurname: {self.surname}\nAge: {self.age}\nTeam: {self.team}\n"\
-                f"Nationality: {self.nationality}\nHeight: {self.height}\n Position: {self.position}"
+        return f"Name: {self.name}\nSurname: {self.surname}\nAge: {self.age}\nTeam: {self.team}\n" \
+               f"Nationality: {self.nationality}\nHeight: {self.height}\n Position: {self.position}"
+
 
 class Player_stats(Base):
     __tablename__ = "player_stats_table"
@@ -97,11 +102,12 @@ class Player_stats(Base):
     red_cards = Column("red_cards", Integer)
 
     def __repr__(self):
-        return f"Stats: {self.player}\nSeason: {self.season}\nMinutes played: {self.minutes_played}\n"\
-                f"Games from start: {self.games_from_start}\nSubtitles: {self.subtitles}\n"\
-                f"Games missed: {self.games_missed}\nGoals: {self.goals}\nAssists: {self.assists}\n"\
-                f"Positive actions: {self.positive_actions}\nYellow card: {self.yellow_cards}\n"\
-                f"Red card: {self.red_cards}"
+        return f"Stats: {self.player}\nSeason: {self.season}\nMinutes played: {self.minutes_played}\n" \
+               f"Games from start: {self.games_from_start}\nSubtitles: {self.subtitles}\n" \
+               f"Games missed: {self.games_missed}\nGoals: {self.goals}\nAssists: {self.assists}\n" \
+               f"Positive actions: {self.positive_actions}\nYellow card: {self.yellow_cards}\n" \
+               f"Red card: {self.red_cards}"
+
 
 class Team_stats(Base):
     __tablename__ = "team_stats_table"
@@ -121,10 +127,11 @@ class Team_stats(Base):
     points = Column("points", Integer)
 
     def __repr__(self):
-        return f"Stats: {self.team}\nSeason: {self.season}\nNumber of games: {self.num_of_games}\n"\
-                f"Games won: {self.games_won}\nGames lost: {self.games_lost}\n"\
-                f"Goal scored: {self.goals_scored}\nGoals lost: {self.goals_lost}\n"\
-                f"Goals_difference: {self.goals_difference}\nPoints: {self.points}"\
+        return f"Stats: {self.team}\nSeason: {self.season}\nNumber of games: {self.num_of_games}\n" \
+               f"Games won: {self.games_won}\nGames lost: {self.games_lost}\n" \
+               f"Goal scored: {self.goals_scored}\nGoals lost: {self.goals_lost}\n" \
+               f"Goals_difference: {self.goals_difference}\nPoints: {self.points}"
+
 
 class Match(Base):
     __tablename__ = "match_table"
@@ -141,26 +148,35 @@ class Match(Base):
     num_of_tour = Column("num_of_tour", Integer)
 
     def __repr__(self):
-        return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}"\
-            f"\t{self.date}"
+        return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}" \
+               f"\t{self.date}"
+
 
 Base.metadata.create_all(engine)
+
+
+def check_season(season_data):
+    result = session.query(Season).filter(Season.year == season_data).first()
+    return result
+
 
 def insert_teams(teams_d, country_name):
     league = session.query(League).filter(League.country == country_name).first()
     if league:
         for i in range(len(teams_d["teams"])):
-            session.add(Team(name=teams_d["teams"][i]["team_name"], league=league))
+            session.add(Team(name=str(teams_d["teams"][i]["team_name"])[2:-3], league=league))
     else:
         raise ValueError("Enter correct country name")
 
 
 def insert_team_stats(teams_d, season_data):
-    season = session.query(Season).filter(Season.year == season_data).first()
+    season = check_season(season_data)
     if season:
         for i in range(len(teams_d["teams"])):
-            team = session.query(Team).filter(Team.id == i+1).first()
-            session.add(Team_stats(team=team, season=season, num_of_games=teams_d["teams"][i]["games"],
+            team = session.query(Team).filter(Team.name == str(teams_d["teams"][i]["team_name"])[2:-3]).first()
+            session.add(Team_stats(team=team,
+                                   season=season,
+                                   num_of_games=teams_d["teams"][i]["games"],
                                    games_won=teams_d["teams"][i]["win"],
                                    games_draw=teams_d["teams"][i]["draw"],
                                    games_lost=teams_d["teams"][i]["lose"],
@@ -172,7 +188,53 @@ def insert_team_stats(teams_d, season_data):
         raise ValueError("Enter correct year")
 
 
+def insert_player(players_d):
+    teams_name = []
+    name_to_find = None
+    for index in range(16):
+        team_correct = str(session.query(Team.name).filter(Team.id == index + 1).first())
+        teams_name.append(team_correct[2:-3])
 
+    for i in range(len(players_d)):
+        for k in range(16):
+            name_to_find = players_d[i]["team_name"]
+            if name_to_find.find(teams_name[k]) != -1:
+                name_to_find = teams_name[k]
+                break
+
+        team = session.query(Team).filter(Team.name == name_to_find).first()
+        fullname = (players_d[i]["full_name"]).split(" ")
+        player_name = fullname[0]
+        player_surname = fullname[1]
+        player_data = Player(full_name=players_d[i]["full_name"],
+                             name=player_name,
+                             surname=player_surname,
+                             age=players_d[i]["age"],
+                             team=team,
+                             nationality=players_d[i]["nationality"],
+                             height=players_d[i]["height"],
+                             position=players_d[i]["position"])
+        session.add(player_data)
+
+
+def insert_player_stats(players_d, season_data):
+    season = check_season(season_data)
+    if season:
+        for i in range(len(players_d)):
+            player = session.query(Player).filter(Player.full_name == players_d[i]["full_name"]).first()
+            session.add(Player_stats(player=player,
+                                     season=season,
+                                     minutes_played=players_d[i]["minutes_played"],
+                                     games_from_start=players_d[i]["games_from_start"],
+                                     subtitles=players_d[i]["subtitles"],
+                                     games_missed=players_d[i]["games_missed"],
+                                     goals=players_d[i]["goals"],
+                                     assists=players_d[i]["assists"],
+                                     positive_actions=players_d[i]["positive_actions"],
+                                     yellow_cards=players_d[i]["yellow_cards"],
+                                     red_cards=players_d[i]["red_cards"]))
+
+
+insert_player(players_list)
 
 session.commit()
-
