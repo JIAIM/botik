@@ -58,13 +58,11 @@ class UPL_Parser(IParser):
         try:
             return BeautifulSoup(requests.get(link).content, 'html.parser')
         except Exception as e:
-            print(e)
+            print(self.__class__)
+            raise e
 
 
 class UPL_TeamParser(ITeamsParser, UPL_Parser):
-
-    def __init__(self, link):
-        super().__init__(link)
 
     def parse_teams(self):
         result = {
@@ -97,7 +95,7 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
                 try:
                     score = game.find('td', class_='score ended').find('a').text
                 except AttributeError:
-                    score = game.find('td', class_='score').find('a').text
+                    score = tuple(map(lambda a: a.strip(), game.find('td', class_='score').find('a').text.split(':')))
 
                 result['games'].append(
                     {
@@ -117,8 +115,9 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
 
 class UPL_PlayerParser(IPlayersParser, UPL_Parser):
 
-    def __init__(self, squad_file, players_links_file):
-        super().__init__(None)
+    def __init__(self, squad_file, players_links_file, link=None):
+        if link is not None:
+            super().__init__(link)
         self.squad_file = squad_file
         self.players_links_file = players_links_file
 
@@ -167,7 +166,7 @@ class UPL_PlayerParser(IPlayersParser, UPL_Parser):
             if result['age'] == '53': result['age'] = None
 
         except Exception as e:
-            print(e)
+            raise e
         print(result)
 
         return result
@@ -237,9 +236,3 @@ class UPLParseFactory(IParseFactory):
         return UPL_PlayerParser(self.squad_file, self.players_links_file).parse_players()
 
 
-teams_links = 'https://football.ua/ukraine/table.html'
-games_link = 'https://football.ua/ukraine/results/761/'
-upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
-teams_dict = upl.parse_teams()
-games_dict = upl.parse_games()
-players_list = upl.parse_players()

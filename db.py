@@ -1,8 +1,14 @@
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATETIME
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
-from pars import games_dict, players_list, teams_dict
+from pars import UPLParseFactory
 
+teams_links = 'https://football.ua/ukraine/table.html'
+games_link = 'https://football.ua/ukraine/results/761/'
+upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
+# teams_dict = upl.parse_teams()
+games_dict = upl.parse_games()
+# players_list = upl.parse_players()
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
 Session = sessionmaker(engine)
@@ -37,8 +43,8 @@ class Team(Base):
     team_stats = relationship("Team_stats")
     players = relationship("Player")
 
-    matches_as_right = relationship("Match", back_populates='team_right')
-    matches_as_left = relationship("Match", back_populates='team_left')
+    # matches_as_right = relationship("Match", back_populates='right_team')
+    # matches_as_left = relationship("Match", back_populates='left_team')
 
     @validates('name')
     def validate_name(self, _, address):
@@ -55,7 +61,7 @@ class Season(Base):
 
     id = Column("id", Integer, primary_key=True)
     year = Column("year", Integer)
-    match = relationship("Match")
+    matches = relationship("Match")
     team_stats = relationship("Team_stats")
     player_stats = relationship("Player_stats")
 
@@ -137,14 +143,15 @@ class Match(Base):
     id = Column("id", Integer, primary_key=True)
     left_team_id = Column(Integer, ForeignKey("team_table.id"))
     right_team_id = Column(Integer, ForeignKey("team_table.id"))
+    season_id = Column(Integer, ForeignKey("season_table.id"))
     left_team = relationship("Team", foreign_keys=[left_team_id])
     right_team = relationship("Team", foreign_keys=[right_team_id])
-    season = Column(Integer, ForeignKey("season_table.id"))
-    left_scored = Column("left_scored", Integer)
-    right_scored = Column("right_scored", Integer)
-    time = Column("time", String)
-    date = Column("date", String)
-    num_of_tour = Column("num_of_tour", Integer)
+    season = relationship("Season")
+    left_scored = Column(Integer, nullable=True)
+    right_scored = Column(Integer, nullable=True)
+    time = Column(String)
+    date = Column(String)
+    num_of_tour = Column(Integer)
 
     def __repr__(self):
         return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}" \
@@ -235,27 +242,33 @@ def insert_matches(matches_dict, season_data):
     season = check_season(season_data)
     if season:
         for i in range(len(matches_dict["games"])):
-            left_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["first_team"]).first()
-            right_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["second_team"]).first()
-            session.add(Match(left_team=left_team,
-                              right_team=right_team,
-                              season=season,
-                              left_scored=str(matches_dict["games"][i]["score"])[:1],
-                              right_scored=str(matches_dict["games"][i]["score"])[2:],
-                              time=matches_dict["games"][i]["time"],
-                              date=matches_dict["games"][i]["date"],
-                              num_of_tour=matches_dict["games"][i]["num_of_tour"]))
+            # try:
+                left_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["first_team"]).first()
+                right_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["second_team"]).first()
+                match = Match(left_team=left_team,
+                                  right_team=right_team,
+                                  season=season,
+                                  left_scored=matches_dict["games"][i]["score"][0],
+                                  right_scored=matches_dict["games"][i]["score"][1],
+                                  time=matches_dict["games"][i]["time"],
+                                  date=matches_dict["games"][i]["date"],
+                                  num_of_tour=matches_dict["games"][i]["num_of_tour"])
+                session.add(match)
+                print(session.query(Match).all())
+            # except Exception as e:
+            #     print(e)
     else:
         raise ValueError()
 
 print(games_dict)
 
-session.add(League(name="Ukrainian Premier League", country="Ukraine"))
-session.add(Season(year=2022))
-insert_teams(teams_dict, "Ukraine")
-insert_team_stats(teams_dict, 2022)
-insert_player(players_list)
-insert_player_stats(players_list, 2022)
-insert_matches(games_dict, 2022)
+# session.add(League(name="Ukrainian Premier League", country="Ukraine"))
+# session.add(Season(year=2022))
+# insert_teams(teams_dict, "Ukraine")
+# insert_team_stats(teams_dict, 2022)
+# insert_player(players_list)
+# insert_player_stats(players_list, 2022)
+
+# insert_matches(games_dict, 2022)
 
 session.commit()
