@@ -104,7 +104,8 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
                         'second_team': game.find('td', class_='right-team').find('a').text,
                         'date': game.find_previous('p', class_='match-date').text,
                         'num_of_tour': game.find_previous('div', class_='match-name').find('h4').text,
-                        'score': score
+                        'left_team_score': score[0],
+                        'right_team_score': score[-1]
                     })
                 result['games'][-1]['num_of_tour'] = int(re.search(r'\d+', result['games'][-1]['num_of_tour']).group())
 
