@@ -238,29 +238,26 @@ def insert_player_stats(players_d, season_data):
                                      red_cards=players_d[i]["red_cards"]))
     else:
         raise ValueError()
+
+
 def insert_matches(matches_dict, season_data):
     season = check_season(season_data)
     if season:
         for i in range(len(matches_dict["games"])):
-            # try:
-                left_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["first_team"]).first()
-                right_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["second_team"]).first()
-                match = Match(left_team=left_team,
-                                  right_team=right_team,
-                                  season=season,
-                                  left_scored=matches_dict["games"][i]["score"][0],
-                                  right_scored=matches_dict["games"][i]["score"][1],
-                                  time=matches_dict["games"][i]["time"],
-                                  date=matches_dict["games"][i]["date"],
-                                  num_of_tour=matches_dict["games"][i]["num_of_tour"])
-                session.add(match)
-                print(session.query(Match).all())
-            # except Exception as e:
-            #     print(e)
+            left_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["first_team"]).first()
+            right_team = session.query(Team).filter(Team.name == matches_dict["games"][i]["second_team"]).first()
+            match = Match(left_team=left_team,
+                          right_team=right_team,
+                          season=season,
+                          left_scored=matches_dict["games"][i]["left_team_score"],
+                          right_scored=matches_dict["games"][i]["right_team_score"],
+                          time=matches_dict["games"][i]["time"],
+                          date=matches_dict["games"][i]["date"],
+                          num_of_tour=matches_dict["games"][i]["num_of_tour"])
+            session.add(match)
     else:
         raise ValueError()
 
-print(games_dict)
 
 # session.add(League(name="Ukrainian Premier League", country="Ukraine"))
 # session.add(Season(year=2022))
@@ -268,7 +265,6 @@ print(games_dict)
 # insert_team_stats(teams_dict, 2022)
 # insert_player(players_list)
 # insert_player_stats(players_list, 2022)
-
 # insert_matches(games_dict, 2022)
 
 session.commit()

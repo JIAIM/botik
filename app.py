@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, request
+import requests
 from dotenv import load_dotenv
 import os
 from os.path import join, dirname
@@ -11,10 +12,18 @@ def get_from_env(key):
     load_dotenv(dotenv_path)
     return os.environ.get(key)
 
-token = get_from_env("TELEGRAM_BOT_TOKEN")
-@app.route('/')
-def hello_world():  # put application's code here
-    return token
+def send_message(chat_id, text):
+    method = "sendMessage"
+    token = get_from_env("TELEGRAM_BOT_TOKEN")
+    url = f"https://api.telegram.org/bot{token}/{method}"
+    data = {"chat_id": chat_id, "text": text}
+    requests.post(url, data=data)
+
+@app.route('/', methods=["POST"])  # localhost:5000 -> telegram`s message
+def process():
+    chat_id = request.json["message"]["chat"]["id"]
+    send_message(chat_id=chat_id, text="Ya tebia ne ponimat")
+    return {"ok": True}
 
 
 if __name__ == '__main__':

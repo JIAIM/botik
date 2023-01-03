@@ -95,8 +95,7 @@ class UPL_GameParser(IGamesParser, UPL_Parser):
                 try:
                     score = game.find('td', class_='score ended').find('a').text
                 except AttributeError:
-                    score = tuple(map(lambda a: a.strip(), game.find('td', class_='score').find('a').text.split(':')))
-
+                    score = game.find('td', class_='score').find('a').text.split(':')
                 result['games'].append(
                     {
                         'time': game.find('td', class_='time').find('a').text,
