@@ -1,3 +1,4 @@
+import json
 
 from flask import Flask, request
 import requests
@@ -40,6 +41,7 @@ def process():
     else:
         send_message(chat_id=chat_id, text=f"Hi {user_name}! Welcome to football bot!\nChoose league:", buttons=league_buttons)
     print(request.json)
+
     return {"ok": True}
 
 
