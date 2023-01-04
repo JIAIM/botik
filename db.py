@@ -7,7 +7,7 @@ teams_links = 'https://football.ua/ukraine/table.html'
 games_link = 'https://football.ua/ukraine/results/761/'
 upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
 # teams_dict = upl.parse_teams()
-games_dict = upl.parse_games()
+# games_dict = upl.parse_games()
 # players_list = upl.parse_players()
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db', echo=True)
@@ -258,7 +258,6 @@ def insert_matches(matches_dict, season_data):
     else:
         raise ValueError()
 
-
 # session.add(League(name="Ukrainian Premier League", country="Ukraine"))
 # session.add(Season(year=2022))
 # insert_teams(teams_dict, "Ukraine")
@@ -266,5 +265,9 @@ def insert_matches(matches_dict, season_data):
 # insert_player(players_list)
 # insert_player_stats(players_list, 2022)
 # insert_matches(games_dict, 2022)
+
+query = session.query(Player_stats).order_by(Player_stats.goals)
+q
+print(query)
 
 session.commit()

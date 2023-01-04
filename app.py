@@ -22,13 +22,11 @@ def send_message(chat_id, text, buttons=None):
     data = {"chat_id": chat_id, "text": text}
 
     if buttons:
-        keyboard = [[button] for button in buttons]
-        print(keyboard)
+        keyboard = [[{"text": button}] for button in buttons]
         reply_markup = {"keyboard": keyboard}
-        print(reply_markup)
         data["reply_markup"] = reply_markup
 
-    requests.post(url, data=data)
+    return requests.post(url, json=data)
 @app.route('/', methods=["POST"])  # localhost:5000 -> telegram`s message
 def process():
     chat_id = request.json["message"]["chat"]["id"]
