@@ -22,7 +22,9 @@ def send_message(chat_id, text):
 @app.route('/', methods=["POST"])  # localhost:5000 -> telegram`s message
 def process():
     chat_id = request.json["message"]["chat"]["id"]
-    send_message(chat_id=chat_id, text="Ya tebia ne ponimat")
+    user_name = request.json['message']['from']['first_name']
+    send_message(chat_id=chat_id, text=f"Hi {user_name}! Welcome to football bot!\nChoose league:")
+    print(request.json)
     return {"ok": True}
 
 
