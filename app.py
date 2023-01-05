@@ -1,5 +1,6 @@
 import json
-
+import sqlite3
+import db
 from flask import Flask, request
 import requests
 from dotenv import load_dotenv

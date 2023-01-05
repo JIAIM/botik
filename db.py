@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DATET
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
 from pars import UPLParseFactory
+from sqlalchemy import select
+import json
 
 teams_links = 'https://football.ua/ukraine/table.html'
 games_link = 'https://football.ua/ukraine/results/761/'
