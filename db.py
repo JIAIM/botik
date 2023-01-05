@@ -10,7 +10,7 @@ upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.
 # games_dict = upl.parse_games()
 # players_list = upl.parse_players()
 Base = declarative_base()
-engine = create_engine('sqlite:///data.db', echo=True)
+engine = create_engine('sqlite:///data.db?check_same_thread=False', echo=True)
 Session = sessionmaker(engine)
 session = Session()
 
@@ -146,7 +146,7 @@ class Match(Base):
     season_id = Column(Integer, ForeignKey("season_table.id"))
     left_team = relationship("Team", foreign_keys=[left_team_id])
     right_team = relationship("Team", foreign_keys=[right_team_id])
-    season = relationship("Season")
+    season = relationship("Season", back_populates="matches")
     left_scored = Column(Integer, nullable=True)
     right_scored = Column(Integer, nullable=True)
     time = Column(String)
@@ -154,8 +154,8 @@ class Match(Base):
     num_of_tour = Column(Integer)
 
     def __repr__(self):
-        return f"{self.num_of_tour} {self.left_team}\t{self.left_scored}:{self.right_scored}\t{self.right_team}" \
-               f"\t{self.date}"
+        return f"Тур - {self.num_of_tour} {self.left_team.name}\t{self.left_scored}:{self.right_scored}\t{self.right_team.name}" \
+               f"\t{self.time} {self.date}"
 
 
 Base.metadata.create_all(engine)
@@ -258,6 +258,76 @@ def insert_matches(matches_dict, season_data):
     else:
         raise ValueError()
 
+def show_mathces(tour):
+    res_str = ''
+    stmt = select(Match).where(Match.num_of_tour == tour)
+    for match in session.scalars(stmt):
+        res_str += str(match) + "\n"
+    return res_str
+
+def top_goal_players():
+    res_str = ""
+    stmt = session.query(Player_stats).order_by(Player_stats.goals).all()
+    for i in range(1, 6):
+        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].goals)} {str(stmt[-i].player.team.name)}\n"
+    return res_str
+
+def top_assist_players():
+    res_str = ""
+    stmt = session.query(Player_stats).order_by(Player_stats.assists).all()
+    for i in range(1, 6):
+        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].assists)} {str(stmt[-i].player.team.name)}\n"
+    return res_str
+
+def top_red_players():
+    res_str = ""
+    stmt = session.query(Player_stats).order_by(Player_stats.red_cards).all()
+    for i in range(1, 6):
+        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].red_cards)}  \n"
+    return res_str
+
+def show_players_of_team(team):
+    res_str = ""
+    stmt = select(Player).where(Player.team.name == team)
+    for i in stmt:
+        res_str += i
+    return res_str
+
+print(show_players_of_team("Шахтар"))
+def show_team_matches(team):
+    res_str = ''
+    stmt = session.query(Match).filter(Match.left_team.name==team).all()
+    for match in session.scalars(stmt):
+        res_str += str(match) + "\n"
+    return res_str
+
+def top_yellow_players():
+    res_str = ""
+    stmt = session.query(Player_stats).order_by(Player_stats.yellow_cards).all()
+    for i in range(1, 6):
+        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].yellow_cards)} \n"
+    return res_str
+
+def show_teams():
+    res_str = ""
+    stmt = session.query(Team).all()
+    for i in range(1, 17):
+        if i<10:
+            res_str += f" {str(i)}. {str(stmt[-i].name)}\n"
+        else:
+            res_str += f"{str(i)}. {str(stmt[-i].name)}\n"
+    return res_str
+
+def show_tables():
+    res_str = "Name Games Won Draw Lost GS GL GD P"
+    stms = session.query(Team_stats).order_by(Team_stats.points).all()
+    for i in range(1, 17):
+        if i < 10:
+            res_str += f"{i}  {str(stms[-i].team.name)}  {str(stms[-i].num_of_games)} {str(stms[-i].games_won)} {str(stms[-i].games_draw)} {str(stms[-i].games_lost)} {str(stms[-i].goals_scored)}  {str(stms[-i].goals_lost)} {str(stms[-i].goals_difference)} {str(stms[-i].points)}\n"
+        else:
+            res_str += f"{i} {str(stms[-i].team.name)} {str(stms[-i].num_of_games)} {str(stms[-i].games_won)} {str(stms[-i].games_draw)} {str(stms[-i].games_lost)} {str(stms[-i].goals_scored)}  {str(stms[-i].goals_lost)} {str(stms[-i].goals_difference)} {str(stms[-i].points)}\n"
+    return res_str
+
 # session.add(League(name="Ukrainian Premier League", country="Ukraine"))
 # session.add(Season(year=2022))
 # insert_teams(teams_dict, "Ukraine")
@@ -265,9 +335,5 @@ def insert_matches(matches_dict, season_data):
 # insert_player(players_list)
 # insert_player_stats(players_list, 2022)
 # insert_matches(games_dict, 2022)
-
-query = session.query(Player_stats).order_by(Player_stats.goals)
-q
-print(query)
 
 session.commit()
