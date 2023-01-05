@@ -66,7 +66,7 @@ class Season(Base):
     player_stats = relationship("Player_stats")
 
     def __repr__(self):
-        return f"Season: {self.year}"
+        return f"{self.year}"
 
 
 class Player(Base):
@@ -84,7 +84,7 @@ class Player(Base):
 
     def __repr__(self):
         return f"Full name: {self.full_name}\nAge: {self.age}\nTeam: {self.team}\n" \
-               f"Nationality: {self.nationality}\nHeight: {self.height}\n Position: {self.position}"
+               f"Nationality: {self.nationality}\nHeight: {self.height}\nPosition: {self.position}"
 
 
 class Player_stats(Base):
@@ -131,7 +131,7 @@ class Team_stats(Base):
     points = Column("points", Integer)
 
     def __repr__(self):
-        return f"Stats: {self.team}\nSeason: {self.season}\nNumber of games: {self.num_of_games}\n" \
+        return f"{self.team}\nSeason: {self.season}\nNumber of games: {self.num_of_games}\n" \
                f"Games won: {self.games_won}\nGames lost: {self.games_lost}\n" \
                f"Goal scored: {self.goals_scored}\nGoals lost: {self.goals_lost}\n" \
                f"Goals_difference: {self.goals_difference}\nPoints: {self.points}"
@@ -258,6 +258,42 @@ def insert_matches(matches_dict, season_data):
     else:
         raise ValueError()
 
+
+def show_team_player(team, player_num):
+    res_str = ""
+    players = session.query(Player).filter(Player.team_id == team)
+    play = players[player_num-1]
+    play_stat = session.query(Player_stats).filter(Player_stats.player == play).first()
+    res_str += str(play_stat)
+    return res_str
+
+def show_team_players(team):
+    res_str = ""
+    i = 1
+    players = session.query(Player).filter(Player.team_id == team)
+    for player in players:
+        if i<10:
+            res_str += str(i) +".  "+str(player.full_name) + "\n"
+        else:
+            res_str += str(i) + ". " + str(player.full_name) + "\n"
+        i+=1
+    return res_str
+
+def show_team_matches(team_name):
+    res_str = ""
+    mat = {}
+    matches_left = session.query(Match).where(Match.left_team_id == team_name)
+    matches_right = session.query(Match).where(Match.right_team_id == team_name)
+    for match1 in matches_left:
+        id = int(str(match1)[6:8])
+        mat[id] = str(match1)
+    for match2 in matches_right:
+        id = int(str(match2)[6:8])
+        mat[id] = str(match2)
+    for i in range(len(mat)):
+        res_str += mat[i+1] + "\n"
+    return res_str
+
 def show_mathces(tour):
     res_str = ''
     stmt = select(Match).where(Match.num_of_tour == tour)
@@ -268,22 +304,23 @@ def show_mathces(tour):
 def top_goal_players():
     res_str = ""
     stmt = session.query(Player_stats).order_by(Player_stats.goals).all()
+    print(stmt)
     for i in range(1, 6):
-        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].goals)} {str(stmt[-i].player.team.name)}\n"
+        res_str += f"{str(i)}. {str(stmt[-i].player.full_name)} {str(stmt[-i].goals)} {str(stmt[-i].player.team.name)}\n"
     return res_str
 
 def top_assist_players():
     res_str = ""
     stmt = session.query(Player_stats).order_by(Player_stats.assists).all()
     for i in range(1, 6):
-        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].assists)} {str(stmt[-i].player.team.name)}\n"
+        res_str += f"{str(i)}. {str(stmt[-i].player.full_name)} {str(stmt[-i].assists)} {str(stmt[-i].player.team.name)}\n"
     return res_str
 
 def top_red_players():
     res_str = ""
     stmt = session.query(Player_stats).order_by(Player_stats.red_cards).all()
     for i in range(1, 6):
-        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].red_cards)}  \n"
+        res_str += f"{i}. {stmt[-i].player.full_name} {stmt[-i].red_cards} \n"
     return res_str
 
 def show_players_of_team(team):
@@ -293,33 +330,31 @@ def show_players_of_team(team):
         res_str += i
     return res_str
 
-print(show_players_of_team("Шахтар"))
-def show_team_matches(team):
-    res_str = ''
-    stmt = session.query(Match).filter(Match.left_team.name==team).all()
-    for match in session.scalars(stmt):
-        res_str += str(match) + "\n"
-    return res_str
+
+
 
 def top_yellow_players():
     res_str = ""
     stmt = session.query(Player_stats).order_by(Player_stats.yellow_cards).all()
     for i in range(1, 6):
-        res_str += f"{str(i)}.{str(stmt[-i].player.full_name)} {str(stmt[-i].yellow_cards)} \n"
+        res_str += f"{str(i)}. {str(stmt[-i].player.full_name)} {str(stmt[-i].yellow_cards)} \n"
     return res_str
 
 def show_teams():
     res_str = ""
-    stmt = session.query(Team).all()
-    for i in range(1, 17):
+    stmt = session.query(Team).order_by(Team.id).all()
+    for i in range(16):
         if i<10:
-            res_str += f" {str(i)}. {str(stmt[-i].name)}\n"
+            res_str += f" {str(i+1)}. {str(stmt[i].name)}\n"
         else:
-            res_str += f"{str(i)}. {str(stmt[-i].name)}\n"
+            res_str += f"{str(i+1)}. {str(stmt[i].name)}\n"
     return res_str
 
+
+
+
 def show_tables():
-    res_str = "Name Games Won Draw Lost GS GL GD P"
+    res_str = "Name Games Won Draw Lost GS GL GD P\n"
     stms = session.query(Team_stats).order_by(Team_stats.points).all()
     for i in range(1, 17):
         if i < 10:
