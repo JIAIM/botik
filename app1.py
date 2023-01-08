@@ -3,9 +3,10 @@ from telebot import types
 from dotenv import load_dotenv
 import os
 from os.path import join, dirname
-
+from datetime import datetime
 import db
 
+print(db.show_tables())
 
 def get_from_env(key):
     dotenv_path = join(dirname(__file__), ".env")
@@ -17,6 +18,15 @@ bot = telebot.TeleBot(get_from_env('TELEGRAM_BOT_TOKEN'))
 
 current_data = {'current_option': None,
                 'previous_option': None}
+
+
+def update_current_data():
+    time = "00:00:01"
+    if time == str(datetime.now().time())[:-7]:
+        db.update_data()
+
+
+update_current_data()
 
 
 @bot.message_handler(commands=["start"])
@@ -59,7 +69,7 @@ def get_user_text(message):
         current_data['current_option'] = message.text
         bot.send_message(message.chat.id, 'Введіть номер туру від 1 до 16')
     elif message.text == "Турнірна таблиця":
-        bot.send_message(message.chat.id, db.show_tables())
+        bot.send_message(message.chat.id, f"<b>{db.show_tables()}</b>", parse_mode="html")
     elif message.text == "Список команд":
         bot.send_message(message.chat.id, db.show_teams())
         current_data['current_option'] = message.text
@@ -75,15 +85,16 @@ def get_user_text(message):
         players_markup.add(players_option1, players_option2)
         bot.send_message(message.chat.id, 'Choose the option:'.format(message.from_user), reply_markup=players_markup)
     elif message.text == 'Детальна Інформація':
-        current_data['previous_option'] = current_data['current_option'] #team
-        current_data['current_option'] = message.text #deteails
+        current_data['previous_option'] = current_data['current_option']  # team
+        current_data['current_option'] = message.text  # deteails
         bot.send_message(message.chat.id, 'Ведіть номер гравця:')
     elif current_data['current_option'] == 'Детальна Інформація' and message.text.isnumeric():
         try:
             back_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             back_option = types.KeyboardButton('Назад')
             back_markup.add(back_option)
-            bot.send_message(message.chat.id, db.show_team_player(current_data['previous_option'], int(message.text)), reply_markup=back_markup)
+            bot.send_message(message.chat.id, db.show_team_player(current_data['previous_option'], int(message.text)),
+                             reply_markup=back_markup)
 
 
         except Exception as e:
@@ -114,7 +125,7 @@ def get_user_text(message):
         teams3 = types.KeyboardButton("Назад")
         teams_markup.add(teams1, teams2, teams3)
         try:
-            if message.text.isnumeric() and 1<=int(message.text)<=16:
+            if message.text.isnumeric() and 1 <= int(message.text) <= 16:
                 current_data['current_option'] = int(message.text)
                 bot.send_message(message.chat.id, 'Оберіть:'.format(message.from_user), reply_markup=teams_markup)
             else:
@@ -163,7 +174,6 @@ def get_user_text(message):
     else:
         bot.send_message(message.chat.id, "Sorry I can`t understand you("
                                           "\nChoose the option or enter correct data")
-
 
 
 bot.polling(none_stop=True)
