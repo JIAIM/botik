@@ -3,14 +3,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, validates
 from pars import UPLParseFactory
 from sqlalchemy import select
+from tabulate import tabulate
 import json
 
-teams_links = 'https://football.ua/ukraine/table.html'
-games_link = 'https://football.ua/ukraine/results/761/'
-upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
-# teams_dict = upl.parse_teams()
-# games_dict = upl.parse_games()
-# players_list = upl.parse_players()
+
 Base = declarative_base()
 engine = create_engine('sqlite:///data.db?check_same_thread=False', echo=True)
 Session = sessionmaker(engine)
@@ -108,7 +104,7 @@ class Player_stats(Base):
     red_cards = Column("red_cards", Integer)
 
     def __repr__(self):
-        return f"Stats: {self.player}\nSeason: {self.season}\nMinutes played: {self.minutes_played}\n" \
+        return f"{self.player}\nSeason: {self.season}\nMinutes played: {self.minutes_played}\n" \
                f"Games from start: {self.games_from_start}\nSubtitles: {self.subtitles}\n" \
                f"Games missed: {self.games_missed}\nGoals: {self.goals}\nAssists: {self.assists}\n" \
                f"Positive actions: {self.positive_actions}\nYellow card: {self.yellow_cards}\n" \
@@ -352,25 +348,39 @@ def show_teams():
             res_str += f"{str(i+1)}. {str(stmt[i].name)}\n"
     return res_str
 
-
-
-
 def show_tables():
-    res_str = "Name Games Won Draw Lost GS GL GD P\n"
     stms = session.query(Team_stats).order_by(Team_stats.points).all()
+    table = [["#","Name","Game","Win","Draw","Lose","GS","GL","GD","Point"]]
     for i in range(1, 17):
-        if i < 10:
-            res_str += f"{i}  {str(stms[-i].team.name)}  {str(stms[-i].num_of_games)} {str(stms[-i].games_won)} {str(stms[-i].games_draw)} {str(stms[-i].games_lost)} {str(stms[-i].goals_scored)}  {str(stms[-i].goals_lost)} {str(stms[-i].goals_difference)} {str(stms[-i].points)}\n"
-        else:
-            res_str += f"{i} {str(stms[-i].team.name)} {str(stms[-i].num_of_games)} {str(stms[-i].games_won)} {str(stms[-i].games_draw)} {str(stms[-i].games_lost)} {str(stms[-i].goals_scored)}  {str(stms[-i].goals_lost)} {str(stms[-i].goals_difference)} {str(stms[-i].points)}\n"
-    return res_str
+            temp = []
+            temp.append(str(i))
+            temp.append(str(stms[-i].team.name))
+            temp.append(str(stms[-i].num_of_games))
+            temp.append(str(stms[-i].games_won))
+            temp.append(str(stms[-i].games_draw))
+            temp.append(str(stms[-i].games_lost))
+            temp.append(str(stms[-i].goals_scored))
+            temp.append(str(stms[-i].goals_lost))
+            temp.append(str(stms[-i].goals_difference))
+            temp.append(str(stms[-i].points))
+            table.append(temp)
+    return tabulate(table, headers='firstrow')
 
-# session.add(League(name="Ukrainian Premier League", country="Ukraine"))
-# session.add(Season(year=2022))
-# insert_teams(teams_dict, "Ukraine")
-# insert_team_stats(teams_dict, 2022)
-# insert_player(players_list)
-# insert_player_stats(players_list, 2022)
-# insert_matches(games_dict, 2022)
+def update_data():
+    teams_links = 'https://football.ua/ukraine/table.html'
+    games_link = 'https://football.ua/ukraine/results/761/'
+    upl = UPLParseFactory(teams_links, games_link, 'upl_squads.txt', 'players_links.txt')
+    teams_dict = upl.parse_teams()
+    games_dict = upl.parse_games()
+    players_list = upl.parse_players()
+    session.add(League(name="Ukrainian Premier League", country="Ukraine"))
+    session.add(Season(year=2022))
+    insert_teams(teams_dict, "Ukraine")
+    insert_team_stats(teams_dict, 2022)
+    insert_player(players_list)
+    insert_player_stats(players_list, 2022)
+    insert_matches(games_dict, 2022)
+    session.commit()
+
 
 session.commit()
